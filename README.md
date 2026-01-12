@@ -1,86 +1,161 @@
-# Supabase Database Backup with GitHub Actions
+# Respaldo Automático de Base de Datos Supabase con GitHub Actions
 
-This repository provides a seamless way to automate backups of your Supabase database using GitHub Actions. It creates daily backups of your database’s roles, schema, and data, and stores them in your repository. It also includes a mechanism to easily restore your database in case something goes wrong.
+Este repositorio proporciona una forma perfecta de automatizar los respaldos de tu base de datos Supabase usando GitHub Actions. Crea respaldos diarios de los roles, esquema y datos de tu base de datos, almacenándolos en tu repositorio. También incluye un mecanismo para restaurar fácilmente tu base de datos en caso de que algo salga mal.
+
+## 🌐 Panel de Control Web
+
+**¡Nuevo!** Ahora incluye un panel de control web completo hospedado en GitHub Pages para gestionar tus respaldos desde cualquier navegador.
+
+### [🚀 Ver Demo del Panel](https://tu-usuario.github.io/supabase-database-backup/)
+
+**Características del Panel Web:**
+- ✨ Interfaz moderna y responsive
+- 🔄 Ejecutar respaldos con un clic
+- 📤 Restauraciones guiadas paso a paso  
+- 📊 Historial visual de respaldos
+- ⚙️ Configuración avanzada
+- 📱 Compatible con dispositivos móviles
 
 ---
 
-## Features
+## Características
 
-- **Automatic Daily Backups:** Scheduled backups run every day at midnight.
-- **Role, Schema, and Data Separation:** Creates modular backup files for roles, schema, and data.
-- **Flexible Workflow Control:** Enable or disable backups with a simple environment variable.
-- **GitHub Action Integration:** Leverages free and reliable GitHub Actions for automation.
-- **Easy Database Restoration:** Clear steps to restore your database from backups.
+- **Respaldos Diarios Automáticos:** Los respaldos programados se ejecutan todos los días a medianoche.
+- **Separación de Roles, Esquema y Datos:** Crea archivos de respaldo modulares para roles, esquema y datos.
+- **Control Flexible del Flujo de Trabajo:** Habilita o deshabilita respaldos con una simple variable de entorno.
+- **Integración con GitHub Actions:** Aprovecha GitHub Actions gratuito y confiable para automatización.
+- **Restauración Fácil de Base de Datos:** Pasos claros para restaurar tu base de datos desde respaldos.
+- **Panel Web de Control:** Interfaz gráfica para gestionar respaldos desde cualquier lugar.
 
 ---
 
-## Getting Started
+## Comenzando
 
-### 1. **Setup Repository Variables**
+### 1. **Configuración de Variables del Repositorio**
 
-Go to your repository settings and navigate to **Actions > Variables**. Add the following:
+Ve a la configuración de tu repositorio y navega a **Actions > Variables**. Agrega lo siguiente:
 
-- **Secrets:**
+- **Secretos:**
 
-  - `SUPABASE_DB_URL`: Your Supabase PostgreSQL connection string. Format:  
-    `postgresql://<USER>:<PASSWORD>@<HOST>:5432/postgres`
+  - `SUPABASE_DB_URL`: Tu cadena de conexión PostgreSQL de Supabase. Formato:  
+    `postgresql://<USUARIO>:<CONTRASEÑA>@<HOST>:5432/postgres`
 
 - **Variables:**
-  - `BACKUP_ENABLED`: Set to `true` to enable backups or `false` to disable them.
+  - `BACKUP_ENABLED`: Establece `true` para habilitar respaldos o `false` para deshabilitarlos.
 
 ---
 
-### 2. **How the Workflow Works**
+### 2. **Cómo Funciona el Flujo de Trabajo**
 
-The GitHub Actions workflow is triggered on:
+El flujo de trabajo de GitHub Actions se activa en:
 
-- Pushes or pull requests to the `main` or `dev` branches.
-- Manual dispatch via the GitHub interface.
-- A daily schedule at midnight.
+- Push o pull requests a las ramas `main` o `dev`.
+- Ejecución manual a través de la interfaz de GitHub.
+- Una programación diaria a medianoche.
 
-The workflow performs the following steps:
+El flujo de trabajo realiza los siguientes pasos:
 
-1. Checks if backups are enabled using the `BACKUP_ENABLED` variable.
-2. Runs the Supabase CLI to create three backup files:
-   - `roles.sql`: Contains roles and permissions.
-   - `schema.sql`: Contains the database structure.
-   - `data.sql`: Contains table data.
-3. Commits the backups to the repository using an auto-commit action.
+1. Verifica si los respaldos están habilitados usando la variable `BACKUP_ENABLED`.
+2. Ejecuta el CLI de Supabase para crear tres archivos de respaldo:
+   - `roles.sql`: Contiene roles y permisos.
+   - `schema.sql`: Contiene la estructura de la base de datos.
+   - `data.sql`: Contiene datos de las tablas.
+3. Confirma los respaldos en el repositorio usando una acción de auto-commit.
 
 ---
 
-### 3. **Restoring Your Database**
+### 3. **Restaurando Tu Base de Datos**
 
-To restore your database:
+#### **Opción A: Restauración Automatizada vía GitHub Actions**
 
-1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli).
-2. Open a terminal and navigate to the folder containing your backup files.
-3. Run the following commands in order:
+1. Ve a la pestaña **Actions** de tu repositorio
+2. Selecciona el flujo de trabajo **"supabase-restore"**
+3. Haz clic en **"Run workflow"** y proporciona:
+   - **URL de BD Destino**: Tu nueva cadena de conexión de base de datos Supabase
+   - **Fecha de Respaldo**: Fecha específica (YYYY-MM-DD) o "latest"
+   - **Opciones**: Elige qué restaurar (roles, esquema, datos)
 
+#### **Opción B: Restauración Manual**
+
+**Usando PowerShell (Windows):**
+```powershell
+.\migrate-database.ps1 -BackupDir ".\prisma\backups\latest" -TargetDbUrl "postgresql://usuario:contraseña@host:5432/postgres"
+```
+
+**Usando Bash (Linux/Mac):**
+```bash
+./migrate-database.sh ./prisma/backups/latest postgresql://usuario:contraseña@host:5432/postgres
+```
+
+**Comandos CLI manuales:**
 ```bash
 supabase db execute --db-url "<SUPABASE_DB_URL>" -f roles.sql
 supabase db execute --db-url "<SUPABASE_DB_URL>" -f schema.sql
 supabase db execute --db-url "<SUPABASE_DB_URL>" -f data.sql
 ```
 
-This restores roles, schema, and data, bringing your database back to its backed-up state.
-Workflow Toggle
+#### **Migración a Nuevo Proyecto Supabase**
 
-Use the BACKUP_ENABLED variable to control whether backups are executed:
+Cuando tu instancia de Supabase falle y necesites migrar a un nuevo proyecto:
 
-    Set to true to enable backups.
-    Set to false to skip backups without editing the workflow file.
+1. **Crea un nuevo proyecto Supabase**
+2. **Obtén la nueva URL de base de datos** desde la configuración del proyecto
+3. **Ejecuta la restauración** usando cualquier método de arriba con la nueva URL
+4. **Actualiza tus aplicaciones** para usar la nueva cadena de conexión
 
-## Requirements
+#### **Opciones Avanzadas de Restauración**
 
-    A Supabase project with a PostgreSQL database.
-    Supabase CLI installed for manual restoration.
-    A GitHub repository with Actions enabled.
+**Restauración selectiva:**
+```powershell
+# Solo restaurar esquema y datos (omitir roles)
+.\migrate-database.ps1 -BackupDir ".\prisma\backups\2026-01-12" -TargetDbUrl $env:NEW_DB_URL -NoRoles
 
-## Contributing
+# Ejecución en seco para ver qué se restauraría
+.\migrate-database.ps1 -BackupDir ".\prisma\backups\latest" -TargetDbUrl $env:TARGET_DB_URL -DryRun -Verbose
+```
 
-Contributions are welcome! If you have improvements or fixes, feel free to submit a pull request.
+---
 
-## License
+### 4. **Configurar Panel de Control Web (Opcional)**
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+Para acceder a una interfaz web para gestionar tus respaldos:
+
+1. **Habilita GitHub Pages**:
+   - Ve a **Settings** → **Pages** en tu repositorio
+   - Selecciona **Deploy from a branch** → **main** → **/ (root)**
+   - Guarda los cambios
+
+2. **Accede al Panel**:
+   - Tu panel estará en: `https://tu-usuario.github.io/nombre-repo/`
+   - Configura tu token de GitHub y información del repositorio
+
+3. **Gestiona desde el Web**:
+   - Ejecuta respaldos manuales
+   - Restaura bases de datos
+   - Ve historial completo
+   - Todo desde tu navegador o móvil
+
+📖 **[Guía completa del Panel Web](docs/PANEL-WEB.md)**
+
+---
+
+### Control del Flujo de Trabajo
+
+Usa la variable `BACKUP_ENABLED` para controlar si los respaldos se ejecutan:
+
+- Establece `true` para habilitar respaldos.
+- Establece `false` para omitir respaldos sin editar el archivo de flujo de trabajo.
+
+## Requisitos
+
+- Un proyecto Supabase con una base de datos PostgreSQL.
+- CLI de Supabase instalado para restauración manual.
+- Un repositorio de GitHub con Actions habilitado.
+
+## Contribuyendo
+
+¡Las contribuciones son bienvenidas! Si tienes mejoras o correcciones, no dudes en enviar un pull request.
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo LICENSE para más detalles.

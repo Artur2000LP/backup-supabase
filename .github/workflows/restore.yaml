@@ -1,0 +1,108 @@
+name: restaurar-supabase
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_db_url:
+        description: 'URL de BD Supabase destino para restauración'
+        required: true
+        type: string
+      backup_date:
+        description: 'Fecha de respaldo a restaurar (YYYY-MM-DD) o "latest"'
+        required: false
+        default: 'latest'
+        type: string
+      restore_roles:
+        description: 'Restaurar roles y permisos'
+        required: false
+        default: true
+        type: boolean
+      restore_schema:
+        description: 'Restaurar esquema de base de datos'
+        required: false
+        default: true
+        type: boolean
+      restore_data:
+        description: 'Restaurar datos de tablas'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  restaurar_base_de_datos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v3
+
+      - name: Configurar CLI de Supabase
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Validar conexión a base de datos destino
+        run: |
+          echo "Probando conexión a base de datos destino..."
+          supabase db execute --db-url "${{ github.event.inputs.target_db_url }}" --command "SELECT 1;"
+
+      - name: Encontrar archivos de respaldo
+        id: find_backup
+        run: |
+          if [ "${{ github.event.inputs.backup_date }}" = "latest" ]; then
+            BACKUP_DIR="prisma/backups"
+          else
+            BACKUP_DIR="prisma/backups/${{ github.event.inputs.backup_date }}"
+          fi
+          
+          if [ ! -d "$BACKUP_DIR" ]; then
+            echo "Directorio de respaldo no encontrado: $BACKUP_DIR"
+            exit 1
+          fi
+          
+          echo "backup_dir=$BACKUP_DIR" >> $GITHUB_OUTPUT
+          echo "Usando respaldo de: $BACKUP_DIR"
+
+      - name: Restaurar roles
+        if: github.event.inputs.restore_roles == 'true'
+        run: |
+          BACKUP_DIR="${{ steps.find_backup.outputs.backup_dir }}"
+          if [ -f "$BACKUP_DIR/roles.sql" ]; then
+            echo "Restaurando roles..."
+            supabase db execute --db-url "${{ github.event.inputs.target_db_url }}" -f "$BACKUP_DIR/roles.sql"
+            echo "✅ Roles restaurados exitosamente"
+          else
+            echo "⚠️ Archivo de respaldo de roles no encontrado"
+          fi
+
+      - name: Restaurar esquema
+        if: github.event.inputs.restore_schema == 'true'
+        run: |
+          BACKUP_DIR="${{ steps.find_backup.outputs.backup_dir }}"
+          if [ -f "$BACKUP_DIR/schema.sql" ]; then
+            echo "Restaurando esquema..."
+            supabase db execute --db-url "${{ github.event.inputs.target_db_url }}" -f "$BACKUP_DIR/schema.sql"
+            echo "✅ Esquema restaurado exitosamente"
+          else
+            echo "⚠️ Archivo de respaldo de esquema no encontrado"
+          fi
+
+      - name: Restaurar datos
+        if: github.event.inputs.restore_data == 'true'
+        run: |
+          BACKUP_DIR="${{ steps.find_backup.outputs.backup_dir }}"
+          if [ -f "$BACKUP_DIR/data.sql" ]; then
+            echo "Restaurando datos..."
+            supabase db execute --db-url "${{ github.event.inputs.target_db_url }}" -f "$BACKUP_DIR/data.sql"
+            echo "✅ Datos restaurados exitosamente"
+          else
+            echo "⚠️ Archivo de respaldo de datos no encontrado"
+          fi
+
+      - name: Resumen de restauración
+        run: |
+          echo "🎉 ¡Restauración de base de datos completada!"
+          echo "Destino: ${{ github.event.inputs.target_db_url }}"
+          echo "Respaldo: ${{ steps.find_backup.outputs.backup_dir }}"
+          echo "Roles: ${{ github.event.inputs.restore_roles }}"
+          echo "Esquema: ${{ github.event.inputs.restore_schema }}"
+          echo "Datos: ${{ github.event.inputs.restore_data }}"

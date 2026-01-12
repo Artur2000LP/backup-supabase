@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Respaldos Supabase</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-database"></i> Panel de Control Supabase</h1>
+                <p>Gestiona tus respaldos de base de datos desde una interfaz web</p>
+            </div>
+        </header>
+
+        <div class="status-bar" id="statusBar">
+            <div class="status-item">
+                <i class="fas fa-circle" id="statusIcon"></i>
+                <span id="statusText">Desconectado</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-clock"></i>
+                <span id="lastBackup">Último respaldo: --</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Configuración -->
+            <section class="card config-section">
+                <div class="card-header">
+                    <h2><i class="fas fa-cog"></i> Configuración</h2>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="githubToken">
+                            <i class="fab fa-github"></i> Token de GitHub
+                            <a href="https://github.com/settings/tokens" target="_blank" class="help-link">
+                                <i class="fas fa-question-circle"></i>
+                            </a>
+                        </label>
+                        <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxx">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="repoOwner">
+                            <i class="fas fa-user"></i> Propietario del Repositorio
+                        </label>
+                        <input type="text" id="repoOwner" placeholder="tu-usuario">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="repoName">
+                            <i class="fas fa-code-branch"></i> Nombre del Repositorio
+                        </label>
+                        <input type="text" id="repoName" placeholder="supabase-database-backup">
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="saveConfig()">
+                        <i class="fas fa-save"></i> Guardar Configuración
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="testConnection()">
+                        <i class="fas fa-wifi"></i> Probar Conexión
+                    </button>
+                </div>
+            </section>
+
+            <!-- Acciones Rápidas -->
+            <section class="card actions-section">
+                <div class="card-header">
+                    <h2><i class="fas fa-bolt"></i> Acciones Rápidas</h2>
+                </div>
+                <div class="card-body">
+                    <div class="action-grid">
+                        <button class="action-btn backup-btn" onclick="triggerBackup()">
+                            <div class="action-icon">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="action-text">
+                                <h3>Crear Respaldo</h3>
+                                <p>Ejecutar respaldo manual ahora</p>
+                            </div>
+                        </button>
+                        
+                        <button class="action-btn restore-btn" onclick="showRestoreModal()">
+                            <div class="action-icon">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <div class="action-text">
+                                <h3>Restaurar BD</h3>
+                                <p>Restaurar desde respaldo</p>
+                            </div>
+                        </button>
+                        
+                        <button class="action-btn history-btn" onclick="showBackupHistory()">
+                            <div class="action-icon">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div class="action-text">
+                                <h3>Historial</h3>
+                                <p>Ver respaldos anteriores</p>
+                            </div>
+                        </button>
+                        
+                        <button class="action-btn settings-btn" onclick="showAdvancedSettings()">
+                            <div class="action-icon">
+                                <i class="fas fa-cogs"></i>
+                            </div>
+                            <div class="action-text">
+                                <h3>Configuración</h3>
+                                <p>Opciones avanzadas</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Historial de Respaldos -->
+            <section class="card history-section" id="historySection" style="display: none;">
+                <div class="card-header">
+                    <h2><i class="fas fa-archive"></i> Historial de Respaldos</h2>
+                    <button class="btn btn-sm btn-secondary" onclick="refreshHistory()">
+                        <i class="fas fa-sync"></i> Actualizar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="backupList" class="backup-list">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Logs -->
+            <section class="card logs-section">
+                <div class="card-header">
+                    <h2><i class="fas fa-terminal"></i> Registro de Actividad</h2>
+                    <button class="btn btn-sm btn-secondary" onclick="clearLogs()">
+                        <i class="fas fa-trash"></i> Limpiar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="logContainer" class="log-container">
+                        <div class="log-entry info">
+                            <span class="log-time">[{{ new Date().toLocaleTimeString() }}]</span>
+                            <span class="log-message">Panel de control iniciado</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal de Restauración -->
+    <div id="restoreModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-upload"></i> Restaurar Base de Datos</h3>
+                <span class="close" onclick="closeModal('restoreModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="restoreForm">
+                    <div class="form-group">
+                        <label for="targetDbUrl">
+                            <i class="fas fa-database"></i> URL de Base de Datos Destino
+                        </label>
+                        <input type="text" id="targetDbUrl" placeholder="postgresql://user:pass@host:5432/postgres" required>
+                        <small>Asegúrate de que la URL sea correcta. Esta operación modificará la base de datos destino.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="backupDate">
+                            <i class="fas fa-calendar"></i> Fecha de Respaldo
+                        </label>
+                        <select id="backupDate">
+                            <option value="latest">Último respaldo (Recomendado)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-list-check"></i> ¿Qué restaurar?
+                        </label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="restoreRoles" checked>
+                                <span class="checkmark"></span>
+                                Roles y permisos
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="restoreSchema" checked>
+                                <span class="checkmark"></span>
+                                Esquema de base de datos
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="restoreData" checked>
+                                <span class="checkmark"></span>
+                                Datos de tablas
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="executeRestore()">
+                    <i class="fas fa-upload"></i> Ejecutar Restauración
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('restoreModal')">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Configuración Avanzada -->
+    <div id="advancedModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cogs"></i> Configuración Avanzada</h3>
+                <span class="close" onclick="closeModal('advancedModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-toggle-on"></i> Estado de Respaldos Automáticos
+                    </label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="autoBackupToggle">
+                        <label for="autoBackupToggle" class="switch"></label>
+                        <span id="autoBackupStatus">Habilitado</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="cronSchedule">
+                        <i class="fas fa-clock"></i> Programación de Respaldos
+                    </label>
+                    <select id="cronSchedule">
+                        <option value="0 0 * * *">Diario a medianoche</option>
+                        <option value="0 */12 * * *">Cada 12 horas</option>
+                        <option value="0 */6 * * *">Cada 6 horas</option>
+                        <option value="0 0 * * 1">Semanal (Lunes)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="retentionDays">
+                        <i class="fas fa-calendar-minus"></i> Retención de Respaldos (días)
+                    </label>
+                    <input type="number" id="retentionDays" value="30" min="1" max="365">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveAdvancedSettings()">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('advancedModal')">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>

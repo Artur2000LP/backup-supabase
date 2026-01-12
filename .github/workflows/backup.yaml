@@ -1,4 +1,4 @@
-name: supabase-backup
+name: respaldo-supabase
 
 on:
   push:
@@ -7,55 +7,98 @@ on:
     branches: [main, dev]
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *" # Runs every day at midnight
+    - cron: "0 0 * * *" # Se ejecuta todos los días a medianoche
 
 env:
   BACKUP_ENABLED: true
 
 jobs:
-  run_db_backup:
+  ejecutar_respaldo_bd:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-      BACKUP_ENABLED: ${{ vars.BACKUP_ENABLED }} # Repository variable (true or false)
+      BACKUP_ENABLED: ${{ vars.BACKUP_ENABLED }} # Variable del repositorio (true o false)
     steps:
-      - name: Check if backups are enabled
+      - name: Verificar si los respaldos están habilitados
         run: |
           if [ "$BACKUP_ENABLED" != "true" ]; then
-            echo "Backups are disabled. Exiting workflow."
+            echo "Los respaldos están deshabilitados. Saliendo del flujo de trabajo."
             exit 0
           fi
 
-      - name: Checkout repository
+      - name: Clonar repositorio
         if: env.BACKUP_ENABLED == 'true'
         uses: actions/checkout@v3
 
-      - name: Setup Supabase CLI
+      - name: Configurar CLI de Supabase
         if: env.BACKUP_ENABLED == 'true'
         uses: supabase/setup-cli@v1
         with:
           version: latest
 
-      - name: Create timestamp folder
+      - name: Crear carpeta con fecha
         if: env.BACKUP_ENABLED == 'true'
-        run: mkdir -p prisma/backups
+        run: |
+          BACKUP_DATE=$(date +%Y-%m-%d)
+          BACKUP_TIME=$(date +%H-%M-%S)
+          BACKUP_DIR="prisma/backups/$BACKUP_DATE"
+          mkdir -p "$BACKUP_DIR"
+          echo "BACKUP_DIR=$BACKUP_DIR" >> $GITHUB_ENV
+          echo "BACKUP_DATE=$BACKUP_DATE" >> $GITHUB_ENV
+          echo "BACKUP_TIME=$BACKUP_TIME" >> $GITHUB_ENV
+          echo "Creando respaldo en: $BACKUP_DIR"
 
-      - name: Backup roles
+      - name: Respaldar roles
         if: env.BACKUP_ENABLED == 'true'
-        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f prisma/backups/roles.sql --role-only
+        run: |
+          echo "Respaldando roles..."
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$BACKUP_DIR/roles.sql" --role-only
+          echo "✅ Respaldo de roles completado"
 
-      - name: Backup schema
+      - name: Respaldar esquema
         if: env.BACKUP_ENABLED == 'true'
-        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f prisma/backups/schema.sql
+        run: |
+          echo "Respaldando esquema..."
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$BACKUP_DIR/schema.sql"
+          echo "✅ Respaldo de esquema completado"
 
-      - name: Backup data
+      - name: Respaldar datos
         if: env.BACKUP_ENABLED == 'true'
-        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f prisma/backups/data.sql --data-only --use-copy
+        run: |
+          echo "Respaldando datos..."
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$BACKUP_DIR/data.sql" --data-only --use-copy
+          echo "✅ Respaldo de datos completado"
 
-      - name: Commit backups
+      - name: Crear enlace a último respaldo
+        if: env.BACKUP_ENABLED == 'true'
+        run: |
+          cd prisma/backups
+          rm -f latest
+          ln -s "$BACKUP_DATE" latest
+          echo "Último respaldo enlazado a: $BACKUP_DATE"
+
+      - name: Crear manifiesto del respaldo
+        if: env.BACKUP_ENABLED == 'true'
+        run: |
+          cat > "$BACKUP_DIR/manifest.json" << EOF
+          {
+            "fecha_respaldo": "$BACKUP_DATE",
+            "hora_respaldo": "$BACKUP_TIME",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "archivos": {
+              "roles": "roles.sql",
+              "esquema": "schema.sql", 
+              "datos": "data.sql"
+            },
+            "version_supabase_cli": "$(supabase --version | cut -d' ' -f3)"
+          }
+          EOF
+          echo "Manifiesto de respaldo creado"
+
+      - name: Confirmar respaldos
         if: env.BACKUP_ENABLED == 'true'
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: Supabase backup
+          commit_message: Respaldo de Supabase

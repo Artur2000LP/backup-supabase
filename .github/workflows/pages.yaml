@@ -1,0 +1,44 @@
+# Configuración automática de GitHub Pages
+name: Configurar GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'index.html'
+      - 'styles.css'
+      - 'script.js'
+  workflow_dispatch:
+
+# Permisos necesarios para GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Solo un deployment a la vez
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar repositorio
+        uses: actions/checkout@v3
+        
+      - name: Configurar Pages
+        uses: actions/configure-pages@v3
+        
+      - name: Subir archivos
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: '.'
+          
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
