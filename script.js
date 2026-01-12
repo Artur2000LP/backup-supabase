@@ -542,3 +542,99 @@ document.addEventListener('keydown', function(e) {
         });
     }
 });
+
+// 🔓 Funciones para desencriptación
+function showDecryptInstructions() {
+    const instructionsBox = document.getElementById('decryptInstructions');
+    instructionsBox.style.display = instructionsBox.style.display === 'none' ? 'block' : 'none';
+}
+
+function downloadDecryptScript() {
+    // Crear y descargar scripts de desencriptación
+    const bashScript = `#!/bin/bash
+# Script de desencriptación generado automáticamente
+# Uso: ./decrypt-backup.sh <fecha-backup>
+
+set -e
+
+BACKUP_DATE=\$1
+if [ -z "\$BACKUP_DATE" ]; then
+    echo "❌ Error: Proporciona una fecha de backup"
+    echo "Uso: ./decrypt-backup.sh YYYY-MM-DD"
+    exit 1
+fi
+
+BACKUP_DIR="prisma/backups/\$BACKUP_DATE"
+if [ ! -d "\$BACKUP_DIR" ]; then
+    echo "❌ Error: No se encontró backup para fecha \$BACKUP_DATE"
+    exit 1
+fi
+
+echo "🔑 Introduce la clave de encriptación:"
+read -s ENCRYPTION_KEY
+
+mkdir -p "\$BACKUP_DIR/decrypted"
+
+FILES=("roles" "schema" "data")
+for file_type in "\${FILES[@]}"; do
+    echo "🔄 Desencriptando \$file_type..."
+    echo "\$ENCRYPTION_KEY" | gpg --batch --passphrase-fd 0 --decrypt "\$BACKUP_DIR/\${file_type}.sql.enc" > "\$BACKUP_DIR/decrypted/\${file_type}.sql"
+    echo "✅ \$file_type desencriptado"
+done
+
+echo "🎉 ¡Desencriptación completada!"
+echo "📁 Archivos en: \$BACKUP_DIR/decrypted/"`;
+
+    const powershellScript = `# Script de desencriptación para PowerShell
+# Uso: .\\decrypt-backup.ps1 -BackupDate "YYYY-MM-DD"
+
+param(
+    [Parameter(Mandatory=\$true)]
+    [string]\$BackupDate
+)
+
+\$BackupDir = "prisma\\backups\\\$BackupDate"
+if (-not (Test-Path \$BackupDir)) {
+    Write-Host "❌ Error: No se encontró backup para fecha \$BackupDate" -ForegroundColor Red
+    exit 1
+}
+
+\$EncryptionKey = Read-Host "🔑 Introduce la clave de encriptación" -AsSecureString
+\$EncryptionKey = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR(\$EncryptionKey))
+
+New-Item -ItemType Directory -Path "\$BackupDir\\decrypted" -Force | Out-Null
+
+\$Files = @("roles", "schema", "data")
+foreach (\$fileType in \$Files) {
+    Write-Host "🔄 Desencriptando \$fileType..." -ForegroundColor Yellow
+    \$process = Start-Process -FilePath "gpg" -ArgumentList @("--batch", "--yes", "--passphrase", \$EncryptionKey, "--decrypt", "\$BackupDir\\\$fileType.sql.enc") -RedirectStandardOutput "\$BackupDir\\decrypted\\\$fileType.sql" -Wait -PassThru -NoNewWindow
+    
+    if (\$process.ExitCode -eq 0) {
+        Write-Host "✅ \$fileType desencriptado" -ForegroundColor Green
+    } else {
+        Write-Host "❌ Error desencriptando \$fileType" -ForegroundColor Red
+    }
+}
+
+Write-Host "🎉 ¡Desencriptación completada!" -ForegroundColor Green`;
+
+    // Descargar script bash
+    const bashBlob = new Blob([bashScript], { type: 'text/plain' });
+    const bashUrl = URL.createObjectURL(bashBlob);
+    const bashLink = document.createElement('a');
+    bashLink.href = bashUrl;
+    bashLink.download = 'decrypt-backup.sh';
+    bashLink.click();
+    
+    // Descargar script PowerShell
+    setTimeout(() => {
+        const psBlob = new Blob([powershellScript], { type: 'text/plain' });
+        const psUrl = URL.createObjectURL(psBlob);
+        const psLink = document.createElement('a');
+        psLink.href = psUrl;
+        psLink.download = 'decrypt-backup.ps1';
+        psLink.click();
+        
+        showNotification('📥 Scripts de desencriptación descargados', 'success');
+    }, 1000);
+}

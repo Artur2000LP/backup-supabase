@@ -133,6 +133,64 @@
                 </div>
             </section>
 
+            <!-- 🔓 Sección de Desencriptación -->
+            <section class="card decrypt-section">
+                <div class="card-header">
+                    <h2><i class="fas fa-unlock"></i> Desencriptar Backups</h2>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="encryptionKey">
+                            <i class="fas fa-key"></i> Clave de Encriptación
+                        </label>
+                        <input type="password" id="encryptionKey" placeholder="Tu clave de encriptación">
+                    </div>
+                    
+                    <div class="action-grid">
+                        <button class="action-btn decrypt-btn" onclick="showDecryptInstructions()">
+                            <div class="action-icon">
+                                <i class="fas fa-unlock-alt"></i>
+                            </div>
+                            <div class="action-text">
+                                <h3>Ver Instrucciones</h3>
+                                <p>Como desencriptar manualmente</p>
+                            </div>
+                        </button>
+                        
+                        <button class="action-btn download-btn" onclick="downloadDecryptScript()">
+                            <div class="action-icon">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="action-text">
+                                <h3>Descargar Scripts</h3>
+                                <p>Scripts de desencriptación</p>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <div id="decryptInstructions" class="instructions-box" style="display: none;">
+                        <h4>🔓 Instrucciones para Desencriptar:</h4>
+                        <ol>
+                            <li><strong>Descarga los scripts</strong> usando el botón de arriba</li>
+                            <li><strong>Ejecuta el script:</strong>
+                                <div class="code-block">
+                                    <strong>Linux/Mac:</strong><br>
+                                    <code>./decrypt-backup.sh FECHA_BACKUP</code><br><br>
+                                    <strong>Windows:</strong><br>
+                                    <code>.\decrypt-backup.ps1 -BackupDate "FECHA_BACKUP"</code>
+                                </div>
+                            </li>
+                            <li><strong>Introduce tu clave</strong> cuando se solicite</li>
+                            <li><strong>Los archivos SQL</strong> aparecerán en <code>/decrypted/</code></li>
+                        </ol>
+                        
+                        <div class="warning-box">
+                            ⚠️ <strong>IMPORTANTE:</strong> Elimina los archivos desencriptados después de usarlos para mantener la seguridad.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Logs -->
             <section class="card logs-section">
                 <div class="card-header">

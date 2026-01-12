@@ -71,6 +71,30 @@ jobs:
           supabase db dump --db-url "$SUPABASE_DB_URL" -f "$BACKUP_DIR/data.sql" --data-only --use-copy
           echo "✅ Respaldo de datos completado"
 
+      - name: 🔒 Encriptar archivos sensibles
+        if: env.BACKUP_ENABLED == 'true'
+        env:
+          ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          echo "🔐 Encriptando archivos de backup..."
+          
+          # Instalar herramientas de encriptación
+          sudo apt-get update && sudo apt-get install -y gpg
+          
+          # Encriptar archivos sensibles
+          echo "$ENCRYPTION_KEY" | gpg --batch --yes --passphrase-fd 0 --symmetric --cipher-algo AES256 --output "$BACKUP_DIR/roles.sql.enc" "$BACKUP_DIR/roles.sql"
+          echo "$ENCRYPTION_KEY" | gpg --batch --yes --passphrase-fd 0 --symmetric --cipher-algo AES256 --output "$BACKUP_DIR/schema.sql.enc" "$BACKUP_DIR/schema.sql"  
+          echo "$ENCRYPTION_KEY" | gpg --batch --yes --passphrase-fd 0 --symmetric --cipher-algo AES256 --output "$BACKUP_DIR/data.sql.enc" "$BACKUP_DIR/data.sql"
+          
+          # Eliminar archivos sin encriptar
+          rm -f "$BACKUP_DIR/roles.sql" "$BACKUP_DIR/schema.sql" "$BACKUP_DIR/data.sql"
+          
+          # Crear archivo de verificación
+          echo "Archivos encriptados correctamente con AES256" > "$BACKUP_DIR/ENCRYPTED_README.txt"
+          echo "Para desencriptar: gpg --decrypt archivo.sql.enc > archivo.sql" >> "$BACKUP_DIR/ENCRYPTED_README.txt"
+          
+          echo "✅ Encriptación completada - Datos protegidos"
+
       - name: Crear enlace a último respaldo
         if: env.BACKUP_ENABLED == 'true'
         run: |
@@ -87,12 +111,14 @@ jobs:
             "fecha_respaldo": "$BACKUP_DATE",
             "hora_respaldo": "$BACKUP_TIME",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "archivos": {
-              "roles": "roles.sql",
-              "esquema": "schema.sql", 
-              "datos": "data.sql"
+            "archivos_encriptados": {
+              "roles": "roles.sql.enc",
+              "esquema": "schema.sql.enc", 
+              "datos": "data.sql.enc"
             },
-            "version_supabase_cli": "$(supabase --version | cut -d' ' -f3)"
+            "encriptacion": "AES256",
+            "version_supabase_cli": "$(supabase --version | cut -d' ' -f3)",
+            "nota_seguridad": "Todos los archivos SQL están encriptados. Usa BACKUP_ENCRYPTION_KEY para desencriptar."
           }
           EOF
           echo "Manifiesto de respaldo creado"
