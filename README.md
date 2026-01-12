@@ -6,7 +6,7 @@ Este repositorio proporciona una forma perfecta de automatizar los respaldos de 
 
 **¡Nuevo!** Ahora incluye un panel de control web completo hospedado en GitHub Pages para gestionar tus respaldos desde cualquier navegador.
 
-### [🚀 Ver Demo del Panel](https://tu-usuario.github.io/supabase-database-backup/)
+### [🚀 Ver Demo del Panel](https://artur2000lp.github.io/backup-supabase/)
 
 **Características del Panel Web:**
 - ✨ Interfaz moderna y responsive
@@ -15,6 +15,7 @@ Este repositorio proporciona una forma perfecta de automatizar los respaldos de 
 - 📊 Historial visual de respaldos
 - ⚙️ Configuración avanzada
 - 📱 Compatible con dispositivos móviles
+- 🔒 **Seguro:** Usa GitHub Secrets (sin exponer datos sensibles)
 
 ---
 
@@ -31,17 +32,26 @@ Este repositorio proporciona una forma perfecta de automatizar los respaldos de 
 
 ## Comenzando
 
-### 1. **Configuración de Variables del Repositorio**
+### 1. **🔒 Configuración SEGURA de Secrets**
 
-Ve a la configuración de tu repositorio y navega a **Actions > Variables**. Agrega lo siguiente:
+**⚠️ IMPORTANTE:** Este repositorio está diseñado para ser **público** manteniendo tus datos **seguros** usando GitHub Secrets.
 
-- **Secretos:**
+#### Configurar Secrets en GitHub:
+1. Ve a: `https://github.com/TU_USUARIO/backup-supabase/settings/secrets/actions`
+2. Click **"New repository secret"** y agrega:
 
-  - `SUPABASE_DB_URL`: Tu cadena de conexión PostgreSQL de Supabase. Formato:  
-    `postgresql://<USUARIO>:<CONTRASEÑA>@<HOST>:5432/postgres`
+```
+SUPABASE_DB_URL = postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+SUPABASE_PROJECT_REF = tu-project-ref  
+SUPABASE_ANON_KEY = tu-anon-key
+SUPABASE_SERVICE_ROLE_KEY = tu-service-role-key
+```
 
-- **Variables:**
-  - `BACKUP_ENABLED`: Establece `true` para habilitar respaldos o `false` para deshabilitarlos.
+📖 **[Ver guía detallada de configuración →](./CONFIGURACION_SECRETS.md)**
+
+#### Variables del Repositorio:
+Ve a **Settings > Secrets and variables > Actions > Variables** y agrega:
+- `BACKUP_ENABLED = true` (para habilitar respaldos)
 
 ---
 

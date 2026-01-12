@@ -1,8 +1,8 @@
 // Configuración global
 let config = {
     githubToken: '',
-    repoOwner: '',
-    repoName: '',
+    repoOwner: 'Artur2000LP', // Tu usuario de GitHub
+    repoName: 'backup-supabase', // Tu repositorio
     apiBase: 'https://api.github.com'
 };
 
